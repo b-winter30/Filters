@@ -11,13 +11,12 @@ def browseFiles(label_file_explorer):
     filename = filedialog.askopenfilename(initialdir = "/",
                                           title = "Select a File",
                                           filetypes = (("Image files",
-                                                        "*.png*"),
+                                                        ".png"),
                                                        ("Image files",
-                                                        "*.jpg*"),
+                                                        ".jpg"),
                                                         ("Image files",
-                                                        "*.jpeg*"),
-                                                       ("all files",
-                                                        "*.*")))
+                                                        ".jpeg"),("all files",
+                                                        ".*")))
       
     # Change label contents
     label_file_explorer.configure(text="File Opened: "+filename)
@@ -30,8 +29,8 @@ def new_window(image_url):
     canvas.pack()
     img = ImageTk.PhotoImage(Image.open(image_url))
     img1 = median_filter(image_url, 5)
-    canvas.create_image(50, 10, image=img, anchor=NW)
-    canvas.create_image(50, 10, image=img1, anchor=NE)
+    canvas.create_image(0, 0, image=img, anchor=NW)
+    canvas.create_image(250, 0, image=img1, anchor=NE)
     mainloop()
     return None
     
