@@ -1,5 +1,6 @@
+from filters import non_local_means_filter
 from tkinter import *
-from filters import median_filter
+from filters import median_filter, bilateral_filter
 from PIL import ImageTk, Image
 from tkinter import filedialog
   
@@ -25,12 +26,29 @@ def browseFiles(label_file_explorer):
     return None
 
 def new_window(image_url):
-    canvas = Canvas(root, height=500, width=500)
+    canvas = Canvas(root, height=1200, width=1200)
     canvas.pack()
     img = ImageTk.PhotoImage(Image.open(image_url))
     img1 = median_filter(image_url, 5)
-    canvas.create_image(0, 0, image=img, anchor=NW)
-    canvas.create_image(250, 0, image=img1, anchor=NE)
+    img2 = bilateral_filter(image_url)
+    img3 = non_local_means_filter(image_url)
+    norm_label = Label(canvas, text='Unfiltered image', fg='white', bg='gray')
+    norm_label.pack()
+    median_label = Label(canvas, text='Median filter size = 5', fg='white', bg='gray')
+    median_label.pack()
+    bilat_label = Label(canvas, text='Bi-lateral filter ' + '\u03C3' + ' = 5' + '\u03C3' +' = 15', fg='white', bg='gray')
+    bilat_label.pack()
+    nlmeans_label = Label(canvas, text='Non-local means filter ', fg='white', bg='gray')
+    nlmeans_label.pack()
+    #The coordinates here need to be changed to be dynamic
+    canvas.create_window(50, 10, window=norm_label)
+    canvas.create_window(400, 10, window=median_label)
+    canvas.create_window(800, 10, window=bilat_label)
+    canvas.create_window(50, 490, window=nlmeans_label)
+    canvas.create_image(0, 20, image=img, anchor=NW)
+    canvas.create_image(400, 20, image=img1, anchor=NW)
+    canvas.create_image(800, 20, image=img2, anchor=NW)
+    canvas.create_image(0, 500, image=img3, anchor=NW)
     mainloop()
     return None
     
