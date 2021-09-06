@@ -1,27 +1,53 @@
+from tkinter.filedialog import test
 import matplotlib.pyplot as plt # plotting library
 import numpy as np # this module is useful to work with numerical arrays
 import pandas as pd 
 import random 
 import torch
+from PIL import Image
 import torchvision
-from torchvision import transforms
+from torchvision import transforms, datasets
+from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader,random_split
 from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
+
+class rock_and_roll(object):
+    '''
+    Image per Image z-score normalization
+
+    Image = (Image-mean(Image))/std(Image)
+    '''
+    def __call__(self, img):
+        img = img.numpy()
+        x_roll , y_roll = int(np.random.rand()*img.shape[1]), int(np.random.rand()*img.shape[2])
+        img = np.roll(img, x_roll, axis=1)
+        img = np.roll(img, y_roll, axis=2)
+        img = torch.Tensor(img)
+
+        return img
 
 data_dir = 'dataset'
 
 train_dataset = torchvision.datasets.MNIST(data_dir, train=True, download=True)
 test_dataset  = torchvision.datasets.MNIST(data_dir, train=False, download=True)
 
+def change_dimension_and_add_to_dataset_and_run(url_tuple, labels):
+    global test_dataset
+    for i in range(len(url_tuple)):
+        #L signifies one channel image
+        im = Image.open(url_tuple[i]).convert('L')
+        out = im.resize((28,28))
+        test_dataset = test_dataset + (out, labels[i])
+    run_main()
+    return None
+
 train_transform = transforms.Compose([
-transforms.ToTensor(),
-])
+transforms.ToTensor()])
 
 test_transform = transforms.Compose([
-transforms.ToTensor(),
-])
+transforms.ToTensor()])
 
 train_dataset.transform = train_transform
 test_dataset.transform = test_transform
@@ -36,10 +62,8 @@ valid_loader = torch.utils.data.DataLoader(val_data, batch_size=batch_size)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size,shuffle=True)
 
 class Encoder(nn.Module):
-    
     def __init__(self, encoded_space_dim,fc2_input_dim):
         super().__init__()
-        
         ### Convolutional section
         self.encoder_cnn = nn.Sequential(
             nn.Conv2d(1, 8, 3, stride=2, padding=1),
@@ -53,7 +77,7 @@ class Encoder(nn.Module):
         
         ### Flatten layer
         self.flatten = nn.Flatten(start_dim=1)
-### Linear section
+        ### Linear section
         self.encoder_lin = nn.Sequential(
             nn.Linear(3 * 3 * 32, 128),
             nn.ReLU(True),
@@ -180,47 +204,76 @@ def test_epoch(encoder, decoder, device, dataloader, loss_fn):
         val_loss = loss_fn(conc_out, conc_label)
     return val_loss.data
 
+### Testing function
+def load_and_test_epoch(encoder, decoder, device, dataloader, loss_fn):
+    # Set evaluation mode for encoder and decoder
+
+    encoder.eval()
+    decoder.eval()
+    with torch.no_grad(): # No need to track the gradients
+        # Define the lists to store the outputs for each batch
+        conc_out = []
+        conc_label = []
+        for image_batch, _ in dataloader:
+            # Move tensor to the proper device
+            image_batch = image_batch.to(device)
+            # Encode data
+            encoded_data = encoder(image_batch)
+            # Decode data
+            decoded_data = decoder(encoded_data)
+            conc_out.append(decoded_data.cpu())
+            conc_label.append(image_batch.cpu())
+        # Create a single tensor with all the values in the lists
+        conc_out = torch.cat(conc_out)
+        conc_label = torch.cat(conc_label) 
+        # Evaluate global loss
+        val_loss = loss_fn(conc_out, conc_label)
+    return val_loss.data
+
 def plot_ae_outputs(encoder,decoder,n=5):
     plt.figure(figsize=(10,4.5))
     for i in range(n):
-      ax = plt.subplot(2,n,i+1)
-      img = test_dataset[i][0].unsqueeze(0).to(device)
-      encoder.eval()
-      decoder.eval()
-      with torch.no_grad():
-         rec_img  = decoder(encoder(img))
-      plt.imshow(img.cpu().squeeze().numpy(), cmap='gist_gray')
-      ax.get_xaxis().set_visible(False)
-      ax.get_yaxis().set_visible(False)  
-      if i == n//2:
-        ax.set_title('Original images')
-      ax = plt.subplot(2, n, i + 1 + n)
-      plt.imshow(rec_img.cpu().squeeze().numpy(), cmap='gist_gray')  
-      ax.get_xaxis().set_visible(False)
-      ax.get_yaxis().set_visible(False)  
-      if i == n//2:
-         ax.set_title('Reconstructed images')
+        ax = plt.subplot(2,n,i+1)
+        img = test_dataset[i][0].unsqueeze(0).to(device)
+        encoder.eval()
+        decoder.eval()
+        with torch.no_grad():
+            rec_img  = decoder(encoder(img))
+        plt.imshow(img.cpu().squeeze().numpy(), cmap='gist_gray')
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)  
+        if i == n//2:
+            ax.set_title('Original images')
+        ax = plt.subplot(2, n, i + 1 + n)
+        plt.imshow(rec_img.cpu().squeeze().numpy(), cmap='gist_gray')  
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)  
+        if i == n//2:
+            ax.set_title('Reconstructed images')
     plt.show()
+    return rec_img.cpu().squeeze().numpy()
 
-num_epochs = 30
-diz_loss = {'train_loss':[],'val_loss':[]}
-for epoch in range(num_epochs):
-    train_loss = train_epoch(encoder,decoder,device,
-    train_loader,loss_fn,optim)
-    val_loss = test_epoch(encoder,decoder,device,test_loader,loss_fn)
-    print('\n EPOCH {}/{} \t train loss {} \t val loss {}'.format(epoch + 1, num_epochs,train_loss,val_loss))
-    diz_loss['train_loss'].append(train_loss)
-    diz_loss['val_loss'].append(val_loss)
-    if epoch == 0 or epoch == (num_epochs-1):
-        plot_ae_outputs(encoder,decoder,n=5)
 
-test_epoch(encoder,decoder,device,test_loader,loss_fn).item()
-plt.figure(figsize=(10,8))
-plt.semilogy(diz_loss['train_loss'], label='Train')
-plt.semilogy(diz_loss['val_loss'], label='Valid')
-plt.xlabel('Epoch')
-plt.ylabel('Average Loss')
-#plt.grid()
-plt.legend()
-#plt.title('loss')
-plt.show()
+def run_autoencoder(images):
+    num_epochs = 50
+    diz_loss = {'train_loss':[],'val_loss':[]}
+    images
+    for epoch in range(num_epochs):
+        train_loss = train_epoch(encoder,decoder,device,
+        train_loader,loss_fn,optim)
+        val_loss = test_epoch(encoder,decoder,device,test_loader,loss_fn)
+        print('\n EPOCH {}/{} \t train loss {} \t val loss {}'.format(epoch + 1, num_epochs,train_loss,val_loss))
+        diz_loss['train_loss'].append(train_loss)
+        diz_loss['val_loss'].append(val_loss)
+        if epoch == (num_epochs-1):
+            image = plot_ae_outputs(encoder,decoder,n=5)
+            images.append(image)
+    test_epoch(encoder,decoder,device,test_loader,loss_fn).item()
+    return images
+
+
+    
+def run_main():
+    images = []
+    run_autoencoder(images)
+    return images
