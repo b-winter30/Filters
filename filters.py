@@ -1,8 +1,11 @@
 from autoencoder import change_dimension_and_add_to_dataset_and_run, run_main
 import numpy as np
 import cv2
-from skimage import img_as_float, color, io
+from skimage import img_as_float, color, io, feature
+from skimage.color import rgb2gray
+from skimage.filters import sobel, scharr, roberts, prewitt, laplace
 from PIL import Image, ImageFilter, ImageTk, ImageEnhance
+from PIL.ImageFilter import FIND_EDGES, EDGE_ENHANCE, EDGE_ENHANCE_MORE
 import pandas as pd
 import matplotlib.pyplot as plt
 size = 250, 250
@@ -46,12 +49,50 @@ def non_local_means_filter(url):
     return photo
 
 def add_images_to_dataset(url_tuple, labels):
-    
     return None
+
+def Sobel_filter(url):
+   im = rgb2gray(cv2.imread(url))
+   filtered_im = sobel(im)
+   return filtered_im
+
+def Roberts_filter(url):
+   im = rgb2gray(cv2.imread(url))
+   filtered_im = roberts(im)
+   return filtered_im
+
+def Scharr_filter(url):
+   im = rgb2gray(cv2.imread(url))
+   filtered_im = scharr(im)
+   return filtered_im
+
+def Prewitt_filter(url):
+   im = rgb2gray(cv2.imread(url))
+   filtered_im = prewitt(im)
+   return filtered_im
+
+def Laplace_filter(url):
+   im = rgb2gray(cv2.imread(url))
+   filtered_im = laplace(im)
+   return filtered_im
+
+def Canny_filter(url, sigma):
+   im = rgb2gray(cv2.imread(url))
+   filtered_im = feature.canny(im, sigma)
+   return filtered_im
+
+def pillow_find_edges(url):
+    im = Image.open(url)
+    filtered_im = im.filter(FIND_EDGES)
+    return filtered_im
 
 def run_autoencoder(url_tuple, labels):
     change_dimension_and_add_to_dataset_and_run(url_tuple, labels)
     return None
-    
 
-run_autoencoder(('./dataset./MNIST./five.jpg', './dataset/MNIST/five.jpg', './dataset/MNIST/five.jpg'), (5, 5, 5))
+#run_autoencoder(('./dataset./MNIST./five.jpg', './dataset/MNIST/five.jpg', './dataset/MNIST/five.jpg'), (5, 5, 5))
+
+sobel_im = pillow_find_edges('./dataset./MNIST./five.jpg')
+
+plt.imshow(sobel_im, cmap='gray')
+plt.show()
