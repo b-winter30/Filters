@@ -1,4 +1,4 @@
-from autoencoder import change_dimension_and_add_to_dataset_and_run, run_main
+from autoencoder import change_dimension_and_add_to_dataset, run_main
 import numpy as np
 import cv2
 from skimage import img_as_float, color, io, feature
@@ -86,13 +86,14 @@ def pillow_find_edges(url):
     filtered_im = im.filter(FIND_EDGES)
     return filtered_im
 
-def run_autoencoder(url_tuple, labels):
-    change_dimension_and_add_to_dataset_and_run(url_tuple, labels)
+def add_to_dataset(url_tuple, label_tuple):
+    change_dimension_and_add_to_dataset(url_tuple, label_tuple)
     return None
 
-#run_autoencoder(('./dataset./MNIST./five.jpg', './dataset/MNIST/five.jpg', './dataset/MNIST/five.jpg'), (5, 5, 5))
-
-sobel_im = pillow_find_edges('./dataset./MNIST./five.jpg')
-
-plt.imshow(sobel_im, cmap='gray')
-plt.show()
+image = Canny_filter('./autoencoder_4.png', 8)
+f = plt.figure()
+f.add_subplot(1,2, 1)
+plt.imshow(image,cmap='gray')
+f.add_subplot(1,2, 2)
+plt.imshow(cv2.imread('./autoencoder_4.png'), cmap='gray')
+plt.show(block=True)

@@ -33,14 +33,13 @@ data_dir = 'dataset'
 train_dataset = torchvision.datasets.MNIST(data_dir, train=True, download=True)
 test_dataset  = torchvision.datasets.MNIST(data_dir, train=False, download=True)
 
-def change_dimension_and_add_to_dataset_and_run(url_tuple, labels):
+def change_dimension_and_add_to_dataset(url_tuple, labels):
     global test_dataset
     for i in range(len(url_tuple)):
         #L signifies one channel image
         im = Image.open(url_tuple[i]).convert('L')
         out = im.resize((28,28))
         test_dataset = test_dataset + (out, labels[i])
-    run_main()
     return None
 
 train_transform = transforms.Compose([
@@ -265,7 +264,7 @@ def run_autoencoder(images):
         print('\n EPOCH {}/{} \t train loss {} \t val loss {}'.format(epoch + 1, num_epochs,train_loss,val_loss))
         diz_loss['train_loss'].append(train_loss)
         diz_loss['val_loss'].append(val_loss)
-        if epoch == (num_epochs-1):
+        if epoch == (num_epochs-1) or epoch == 0:
             image = plot_ae_outputs(encoder,decoder,n=5)
             images.append(image)
     test_epoch(encoder,decoder,device,test_loader,loss_fn).item()
